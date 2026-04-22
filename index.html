@@ -2,15 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + React + TS</title>
     <link
   rel="stylesheet"
   href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 />
+    <script>
+      (function (location) {
+        if (location.search[1] === '/') {
+          var decoded = location.search
+            .slice(1)
+            .split('&')
+            .map(function (segment) {
+              return segment.replace(/~and~/g, '&');
+            })
+            .join('?');
+          window.history.replaceState(
+            null,
+            '',
+            location.pathname.slice(0, -1) + decoded + location.hash,
+          );
+        }
+      })(window.location);
+    </script>
 
-    <script type="module" crossorigin src="/skin-leision-diagnosis-fullstack-app/assets/index-C7NFq8aN.js"></script>
+    <script type="module" crossorigin src="/skin-leision-diagnosis-fullstack-app/assets/index-B-u5xO48.js"></script>
     <link rel="stylesheet" crossorigin href="/skin-leision-diagnosis-fullstack-app/assets/index-BXsyXXHV.css">
   </head>
   <body>
