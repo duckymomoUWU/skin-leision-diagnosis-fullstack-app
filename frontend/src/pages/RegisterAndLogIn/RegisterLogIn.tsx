@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import authService from '../../services/authService';
 import './RegisterLogIn.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setNavbarActiveItem } from '../../stores/UiStore';
+import { loginSuccess } from '../../stores/AuthStore';
 
 const API_URL = 'http://localhost:8000';
 
@@ -60,7 +61,7 @@ const Register: React.FC = () => {
   };
 
   const generatePatientId = () => {
-    return 'PAT' + Math.floor(100000 + Math.random() * 900000);
+    return 'PAT-' + Date.now().toString().slice(-6) + Math.floor(100 + Math.random() * 900);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -72,11 +73,11 @@ const Register: React.FC = () => {
         fullName: registerForm.fullName,
         email: registerForm.email,
         password: registerForm.password,
-        birthDay: new Date(registerForm.birthDay).toISOString(),
-        patient_id: generatePatientId()
+        phone: '', // Optional
+        address: registerForm.birthDay // Temporarily mapped birthday to address if needed, or leave empty
       };
       console.log('PATIENT DATA:', patientData);
-      await axios.post(`${API_URL}/auth/register/patient`, patientData);
+      await authService.register(patientData);
       setRegisterMessage('Đăng ký thành công! Vui lòng đăng nhập.');
       setRegisterForm({
         fullName: '',
@@ -99,29 +100,26 @@ const Register: React.FC = () => {
     setLoginLoading(true);
     setLoginMessage('');
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await authService.login({
         email: loginForm.email,
         password: loginForm.password
-      }, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-        }
       });
 
-      if (response.data.access_token) {
+      if (response.access_token) {
         setLoginMessage('Đăng nhập thành công!');
-        localStorage.setItem('access_token', response.data.access_token);
-        localStorage.setItem('token_type', response.data.token_type);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        dispatch(loginSuccess({
+          token: response.access_token,
+          tokenType: response.token_type,
+          user: response.user
+        }));
+
         setTimeout(() => {
           dispatch(setNavbarActiveItem('home'));
-          if (response.data.user.userType === 'doctor') {
-            // console.log("doctor");
-            navigate('/');
+          if (response.user.role === 'DOCTOR' || response.user.role === 'ADMIN') {
+            navigate('/admin/dashboard');
           } else {
             navigate('/');
-            // console.log("patient");
           }
         }, 500);
       }

@@ -1,5 +1,6 @@
 import '../css/content_4.css'
 import { NavLink } from 'react-router-dom'
+import contentImage from '../../../assets/pictures/img_content_4.png'
 const Content_4 = () => {
     return (
         <div className='content_4'>
@@ -9,7 +10,7 @@ const Content_4 = () => {
                 <NavLink to="/doctors-ai" className='content_3_right_third'>Learn More</NavLink>
             </div>
             <div className='content_4_right'>
-                <img src="/src/assets/pictures/img_content_4.png" alt="" />
+                <img src={contentImage} alt="Skin analysis" />
             </div>
         </div>
     )

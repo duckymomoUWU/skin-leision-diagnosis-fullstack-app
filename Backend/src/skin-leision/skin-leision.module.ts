@@ -1,17 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { SkinLesionService } from './skin-leision.service';
 import { SkinLesionController } from './skin-leision.controller';
-import { SkinLesion, SkinLesionSchema } from './entities/skin-leision.entity';
-import { Product, ProductSchema } from '../product/entities/product.entity';
+import { SkinLesion } from './entities/skin-leision.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: SkinLesion.name, schema: SkinLesionSchema },
-      { name: Product.name, schema: ProductSchema },
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([SkinLesion])],
   controllers: [SkinLesionController],
   providers: [SkinLesionService],
   exports: [SkinLesionService],

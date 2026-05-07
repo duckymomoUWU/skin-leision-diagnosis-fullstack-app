@@ -26,27 +26,8 @@ const DoctorAI: React.FC = () => {
   }, []);
 
   // Generate diagnose_id
-  async function getNextDiagnoseId(): Promise<string> {
-    const prefix = "DGN";
-    try {
-      const res = await axiosInstance.get("/diagnose");
-      const diagnoses = res.data || [];
-      const usedNumbers = diagnoses
-        .map((d: any) => d.diagnose_id)
-        .filter((id: string) => id && id.startsWith(prefix))
-        .map((id: string) => parseInt(id.replace(prefix, ""), 10))
-        .filter((n: number) => !isNaN(n))
-        .sort((a: number, b: number) => a - b);
-
-      let nextNum = 1;
-      for (let num of usedNumbers) {
-        if (num === nextNum) nextNum++;
-        else break;
-      }
-      return prefix + nextNum.toString().padStart(2, "0");
-    } catch {
-      return prefix + "00001";
-    }
+  function generateDiagnoseId(): string {
+    return 'DGN-' + Date.now().toString().slice(-6) + Math.floor(100 + Math.random() * 900);
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,7 +44,7 @@ const DoctorAI: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
-      setError("Vui lòng chọn một ảnh.");
+      setError("Please select an image.");
       return;
     }
     setLoading(true);
@@ -74,42 +55,26 @@ const DoctorAI: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const uploadRes = await axiosInstance.post('/upload/image', formData, {
+      formData.append("description", "Chẩn đoán từ hệ thống AI");
+
+      // Gọi duy nhất 1 API tới NestJS. NestJS sẽ lo việc upload Cloudinary, gọi AI và lưu Oracle!
+      const response = await axiosInstance.post('/diagnose', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      const imageUrl = uploadRes.data.url;
+      
+      const data = response.data;
 
-      const aiForm = new FormData();
-      aiForm.append("file", selectedFile);
-      const aiRes = await axios.post("http://localhost:5000/predict", aiForm, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const data = aiRes.data;
-
-      if (data.prediction) {
+      if (data && data.prediction) {
         setResult(data.prediction);
         setConfidence(data.confidence);
-
-        const diagnose_id = await getNextDiagnoseId();
-
-        const diagnoseData = {
-          diagnose_id,
-          prediction: data.prediction,
-          image: imageUrl,
-          description: "Normal",
-          confidence: Number(data.confidence) || 70.0,
-          createdBy: userId,
-        };
-        await axiosInstance.post('/diagnose', diagnoseData);
-
       } else {
-        setError("Không nhận được kết quả hợp lệ từ AI.");
+        setError("No valid result received from AI.");
       }
     } catch (err: any) {
       if (err.response && err.response.data && err.response.data.message) {
-        setError("Lưu kết quả thất bại: " + err.response.data.message);
+        setError("Failed to save result: " + err.response.data.message);
       } else {
-        setError(err.message || "Đã có lỗi xảy ra.");
+        setError(err.message || "An error occurred.");
       }
     } finally {
       setLoading(false);
@@ -119,7 +84,7 @@ const DoctorAI: React.FC = () => {
   return (
     <div className="doctorai-container">
       <h1 className="doctorai-title">
-        Bác sĩ AI <span className="doctorai-emoji">🩺</span>
+        AI Doctor <span className="doctorai-emoji">🩺</span>
       </h1>
       <form onSubmit={handleSubmit} className="doctorai-form">
         <label className="doctorai-upload-label">
@@ -130,7 +95,7 @@ const DoctorAI: React.FC = () => {
             disabled={loading}
             className="doctorai-file-input"
           />
-          <span className="doctorai-upload-button">Chọn ảnh</span>
+          <span className="doctorai-upload-button">Choose Image</span>
         </label>
         {previewUrl && (
           <img
@@ -147,24 +112,24 @@ const DoctorAI: React.FC = () => {
           {loading ? (
             <span className="doctorai-spinner"></span>
           ) : (
-            "Chẩn đoán"
+            "Diagnose"
           )}
         </button>
       </form>
       {error && <div className="doctorai-error">{error}</div>}
       {result && (
         <div className="doctorai-result-box">
-          <h3>Kết quả AI:</h3>
+          <h3>AI Result:</h3>
           <div className="doctorai-result">
-            Dự đoán: <b>{result}</b>
+            Prediction: <b>{result}</b>
           </div>
           {confidence !== null && (
             <div className="doctorai-result">
-              Độ tin cậy: <b>{confidence}%</b>
+              Confidence: <b>{confidence}%</b>
             </div>
           )}
           <div className="doctorai-tip">
-            (Phân loại: bkl, nv, df, mel, vasc, bcc, akiec)
+            (Classification: bkl, nv, df, mel, vasc, bcc, akiec)
           </div>
         </div>
       )}

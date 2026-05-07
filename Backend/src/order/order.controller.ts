@@ -1,50 +1,50 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { OrderService } from './order.service';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('order')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
+  @Roles(UserRole.PATIENT)
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.orderService.create(createOrderDto);
+  create(@Request() req, @Body() createOrderDto: any) {
+    return this.orderService.create(req.user.id, createOrderDto);
   }
 
+  @Roles(UserRole.ADMIN)
   @Get()
   findAll() {
     return this.orderService.findAll();
   }
-  // New endpoint to get orders with products details
-  @Get('with-details')
-  async findAllWithDetails() {
-    try {
-      return await this.orderService.findAllWithDetails();
-    } catch (error) {
-      console.error('Error in findAllWithDetails:', error);
-      throw error;
-    }
+
+  @Roles(UserRole.PATIENT)
+  @Get('my')
+  findMy(@Request() req) {
+    return this.orderService.findMy(req.user.id);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.orderService.findOne(id);
+    return this.orderService.findOne(+id);
   }
 
-  // New endpoint to get single order with details
-  @Get(':id/with-details')
-  findOneWithDetails(@Param('id') id: string) {
-    return this.orderService.findOneWithDetails(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.orderService.update(id, updateOrderDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.orderService.remove(id);
+  @Roles(UserRole.ADMIN)
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.orderService.updateStatus(+id, status);
   }
 }

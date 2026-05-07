@@ -9,11 +9,11 @@ import Routes from './routes/Routes';
 function App() {
   return (
     <Provider store={store}>
-      {/* <PersistGate loading={null} persistor={persistor}> */}
-        <BrowserRouter>
+      <PersistGate loading={null} persistor={persistor}>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <Routes />
         </BrowserRouter>
-      {/* </PersistGate> */}
+      </PersistGate>
     </Provider>
   );
 }

@@ -3,6 +3,7 @@ import axiosInstance from "../../api/Axios";
 import './style.css';
 import { DiagnoseType } from "../../types/Types";
 import { SearchIcon } from "../../assets/SVG/Svg";
+import LoadingSkeleton from "../../components/LoadingSkeleton/LoadingSkeleton";
 
 // ----- Sort Type -----
 type SortOrder = "increase" | "decrease";
@@ -54,25 +55,21 @@ const PatientDiagnose = () => {
     // ----- Fetch all diagnoses for this patient -----
     useEffect(() => {
         const fetchAll = async () => {
-            if (userId === "UNKNOWN") return;
             setLoading(true);
             try {
-                const diagnosesRes = await axiosInstance.get('/diagnose');
-                const diagnoseList: DiagnoseType[] = diagnosesRes.data
-                    .filter((d: any) => !d.deleted && d.createdBy === userId)
-                    .map((diag: any) => ({
-                        _id: diag._id,
-                        diagnose_id: diag.diagnose_id,
-                        prediction: diag.prediction,
-                        image: diag.image,
-                        description: diag.description,
-                        confidence: diag.confidence,
-                        createdAt: diag.createdAt,
-                        createdBy: diag.createdBy,
-                        deleted: diag.deleted,
-                    }));
+                const response = await axiosInstance.get('/diagnose/my-history');
+                const diagnoseList: DiagnoseType[] = response.data.map((diag: any) => ({
+                    id: diag.id,
+                    diagnose_id: diag.diagnose_id,
+                    prediction: diag.prediction,
+                    image: diag.image,
+                    description: diag.description,
+                    confidence: diag.confidence,
+                    createdAt: diag.created_at,
+                }));
                 setDiagnoses(diagnoseList);
-            } catch {
+            } catch (err) {
+                console.error("Failed to fetch diagnosis history", err);
                 setDiagnoses([]);
             }
             setLoading(false);
@@ -210,12 +207,12 @@ const PatientDiagnose = () => {
                 {/* Body table */}
                 <div>
                     {loading ? (
-                        <div className="diagnose_loader">Loading...</div>
+                        <LoadingSkeleton type="table" rows={5} />
                     ) : currentRows.length === 0 ? (
                         <div className="empty_diagnose_history">No diagnoses found.</div>
                     ) : (
-                        currentRows.map((d) => (
-                            <div className="row_diagnose_history" key={d._id}>
+                        currentRows.map((d: any) => (
+                            <div className="row_diagnose_history" key={d.id}>
                                 <div title={d.diagnose_id}>{d.diagnose_id}</div>
                                 <div title={d.prediction}>{d.prediction}</div>
                                 <div title={d.description}>{d.description || '-'}</div>
@@ -240,7 +237,7 @@ const PatientDiagnose = () => {
             {/* Pagination */}
             <div className="diagnose_pagination">
                 <div>
-                    Show {currentRows.length} / {sortedRows.length} doctors
+                    Show {currentRows.length} / {sortedRows.length} diagnoses
                 </div>
                 {totalPages > 1 && (
                     <div className="doctor_pagination">

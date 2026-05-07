@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import "./style.scss";
 import ProductCard from "../../components/client/ProductCard";
+import axiosInstance from "../../api/Axios";
 
 type Product = {
-    _id: string;
+    id: number;
     product_id: string;
     title: string;
     description: string;
@@ -20,15 +21,16 @@ const ClientProduct = () => {
     const [data, setData] = useState<Product[]>([]);
 
     useEffect(() => {
-        fetch("http://localhost:8000/product")
-            .then(res => res.json())
-            .then(data => {
-                setData(data)
+        axiosInstance.get("/product")
+            .then(res => {
+                setData(res.data)
             })
+            .catch(err => console.error("Failed to fetch products", err));
     }, [])
 
     const [openFilter, setOpenFilter] = useState(false);
-    const [filterSelected, setFilterSelected] = useState("All")
+    const ALL_CATEGORY = "All";
+    const [filterSelected, setFilterSelected] = useState(ALL_CATEGORY)
 
     const [openSort, setOpenSort] = useState(false);
     const [sortSelected, setSortSelected] = useState("Giá tăng dần")
@@ -36,7 +38,7 @@ const ClientProduct = () => {
 
 
     const categories = [
-        "All leision",     // All Categories
+        ALL_CATEGORY,
         "nv",      // Melanocytic nevi
         "mel",     // Melanoma
         "bkl",     // Benign keratosis-like lesions
@@ -60,13 +62,12 @@ const ClientProduct = () => {
 
     // Fetch related products
     useEffect(() => {
-        if (filterSelected === "All") {
+        if (filterSelected === ALL_CATEGORY) {
             setRelatedProductIds([]);
         } else {
-            fetch(`http://localhost:8000/skin-leision/${filterSelected}`)
-                .then(res => res.json())
-                .then(data => {
-                    setRelatedProductIds(data.relatedProducts || []);
+            axiosInstance.get(`/skin-leision/by-name/${filterSelected}`)
+                .then(res => {
+                    setRelatedProductIds(res.data.relatedProductIds || []);
                 })
                 .catch(() => setRelatedProductIds([]));
         }
@@ -75,7 +76,7 @@ const ClientProduct = () => {
 
     const filteredAndSortedData = data
     .filter((item) => {
-        if (filterSelected === "All") return true;
+        if (filterSelected === ALL_CATEGORY) return true;
         return relatedProductIds.includes(item.product_id);
     })
     
@@ -138,8 +139,8 @@ const ClientProduct = () => {
                 <div className="product__list">
                     {currentItems.map((product) => (
                         <ProductCard
-                        key={product._id}
-                        id={product._id}
+                        key={product.id}
+                        id={product.id.toString()}
                         image={product.image}
                         title={product.title}
                         price={product.price}

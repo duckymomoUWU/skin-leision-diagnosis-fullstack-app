@@ -24,8 +24,9 @@ const Profile = () => {
     const [editForm, setEditForm] = useState<(PatientType & { birthDay: string; _id?: string })>({ ...defaultPatient, _id: '' });
     const [editLoading, setEditLoading] = useState(false);
     const [showEditForm, setShowEditForm] = useState(false);
-    const [loading, setLoading] = useState(false);
     const [editImageUploading, setEditImageUploading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     const handleEditPatient = (patient: PatientType & { birthDay: string; _id?: string }) => {
         setEditForm({
@@ -45,6 +46,8 @@ const Profile = () => {
     const handleEditFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setEditLoading(true);
+        setErrorMessage('');
+        setSuccessMessage('');
         try {
         if (editForm._id) {
             const { _id, ...dataToSend } = editForm;
@@ -52,14 +55,14 @@ const Profile = () => {
             await axiosInstance.patch(`/patient/${editForm._id}`, dataToSend);
         }
         setShowEditForm(false);
-        // await fetchPatients();
-        window.location.reload();
+        setSuccessMessage('Profile updated successfully!');
+        await fetchUser();
 
         } catch (e: any) {
         if (e?.response?.data?.message) {
-            alert(e.response.data.message);
+            setErrorMessage(e.response.data.message);
         } else {
-            alert("Update failed!");
+            setErrorMessage('Update failed!');
         }
         }
         setEditLoading(false);
@@ -70,25 +73,12 @@ const Profile = () => {
         const res = await axiosInstance.get(`/patient/${id}`);
         setUser(res.data);
         } catch {
-        alert("Failed to load user");
+        setErrorMessage('Failed to load user profile.');
         }
     };
     useEffect(() => {
         fetchUser();
     }, [id]);
-
-
-    // Fetch patients
-    const fetchPatients = async () => {
-        setLoading(true);
-        try {
-        const res = await axiosInstance.get('/patient');
-        setUser(res.data);
-        } catch {
-        setUser([]);
-        }
-        setLoading(false);
-    };
 
     const navigate = useNavigate();
     const goTo = (route: string) => {
@@ -114,7 +104,7 @@ const Profile = () => {
         });
         setEditForm(prev => prev ? ({ ...prev, avatar: res.data.url }) : prev);
         } catch (err) {
-        alert('Upload image failed!');
+        setErrorMessage('Upload image failed!');
         }
         setEditImageUploading(false);
     };
@@ -125,6 +115,8 @@ const Profile = () => {
         <>
             <div className="profile-container">
                 <h2>Thông tin cá nhân</h2>
+                {successMessage && <div style={{ color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontWeight: 500 }}>{successMessage}</div>}
+                {errorMessage && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontWeight: 500 }}>{errorMessage}</div>}
                 <div className="profile-box">
                     <img
                     src={user?.avatar || avatarDefault}
@@ -136,8 +128,8 @@ const Profile = () => {
                     <p><strong>Họ tên:</strong> {user?.fullName}</p>
                     <p><strong>Email:</strong> {user?.email}</p>
                     <p><strong>Phone:</strong> {user?.phone || ""}</p>
-                    <p><strong>Ngày sinh:</strong> {new Date(user?.birthDay).toLocaleDateString()}</p>
-                    <p><strong>Ngày đăng ký:</strong> {new Date(user?.createdAt).toLocaleDateString()}</p>
+                    <p><strong>Ngày sinh:</strong> {user?.birthDay ? new Date(user.birthDay).toLocaleDateString() : '-'}</p>
+                    <p><strong>Ngày đăng ký:</strong> {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</p>
                     </div>
                 </div>
 

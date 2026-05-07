@@ -1,5 +1,6 @@
 import '../css/content_1.css'
 import { NavLink } from 'react-router-dom'
+import contentBackground from '../../../assets/pictures/content_background_1.png'
 
 const Content_1 = () => {
     return (
@@ -14,7 +15,7 @@ const Content_1 = () => {
                 <NavLink to="/about-us" className='content_1_fourth_span'>Learn more</NavLink>
 
             </div>
-            <img src="/src/assets/pictures/content_background_1.png" alt="" className='content_1_img'/>
+            <img src={contentBackground} alt="Skin care background" className='content_1_img'/>
             <span className='content_1_fifth_span'>Care you can believe in</span>
         </div>
     )

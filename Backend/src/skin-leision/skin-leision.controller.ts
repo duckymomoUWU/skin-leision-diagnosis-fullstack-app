@@ -6,17 +6,22 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { SkinLesionService } from './skin-leision.service';
-import { CreateSkinLesionDto } from './dto/create-skin-leision.dto';
-import { UpdateSkinLeisionDto } from './dto/update-skin-leision.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @Controller('skin-leision')
 export class SkinLesionController {
   constructor(private readonly skinLesionService: SkinLesionService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Post()
-  create(@Body() createSkinLesionDto: CreateSkinLesionDto) {
+  create(@Body() createSkinLesionDto: any) {
     return this.skinLesionService.create(createSkinLesionDto);
   }
 
@@ -25,42 +30,37 @@ export class SkinLesionController {
     return this.skinLesionService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Post('bulk')
-  async createMany(@Body() createSkinLesionDtos: CreateSkinLesionDto[]) {
+  async createMany(@Body() createSkinLesionDtos: any[]) {
     return this.skinLesionService.createMany(createSkinLesionDtos);
   }
 
-  @Patch(':name')
-  async updateRelatedProducts(
-    @Param('name') name: string,
-    @Body('relatedProducts') relatedProducts: string[],
-  ) {
-    return this.skinLesionService.updateRelatedProductsByName(
-      name,
-      relatedProducts,
-    );
-  }
-
-  @Get(':name')
+  @Get('by-name/:name')
   async findByName(@Param('name') name: string) {
     return this.skinLesionService.findByName(name);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.skinLesionService.findOne(id);
+    return this.skinLesionService.findOne(+id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updateSkinLesionDto: UpdateSkinLeisionDto,
+    @Body() updateSkinLesionDto: any,
   ) {
-    return this.skinLesionService.update(id, updateSkinLesionDto);
+    return this.skinLesionService.update(+id, updateSkinLesionDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.skinLesionService.remove(id);
+    return this.skinLesionService.remove(+id);
   }
 }

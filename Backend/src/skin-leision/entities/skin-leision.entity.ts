@@ -1,32 +1,28 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-export type SkinLesionDocument = SkinLesion & Document;
-
-@Schema({ timestamps: true })
+@Entity('skin_lesions')
 export class SkinLesion {
-  @Prop({ required: true, unique: true })
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ type: 'varchar', length: 50, unique: true })
   name: string;
 
-  @Prop({ required: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  full_name: string;
+
+  @Column({ type: 'varchar', length: 2000, nullable: true })
   description: string;
 
-  @Prop()
+  @Column({ type: 'varchar', length: 1000, nullable: true })
   symptoms: string;
 
-  @Prop()
+  @Column({ type: 'varchar', length: 1000, nullable: true })
   recommendation: string;
 
-  @Prop()
-  dangerLevel: string;
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  danger_level: string;
 
-  @Prop([String])
-  imageExamples: string[];
-  @Prop([{ type: Types.ObjectId, ref: 'Product' }])
-  relatedProducts: Types.ObjectId[];
-
-  @Prop({ default: false })
-  deleted: boolean;
+  @Column({ type: 'number', default: 0 })
+  is_deleted: number;
 }
-
-export const SkinLesionSchema = SchemaFactory.createForClass(SkinLesion);

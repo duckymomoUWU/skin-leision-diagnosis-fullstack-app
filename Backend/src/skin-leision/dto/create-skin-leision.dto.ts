@@ -1,10 +1,13 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray, IsMongoId } from 'class-validator';
-import { Types } from 'mongoose';
+import { IsString, IsNotEmpty, IsOptional, IsArray, IsNumber } from 'class-validator';
 
 export class CreateSkinLesionDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @IsString()
+  @IsOptional()
+  full_name?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -20,15 +23,10 @@ export class CreateSkinLesionDto {
 
   @IsString()
   @IsOptional()
-  dangerLevel?: string;
+  danger_level?: string;
 
   @IsArray()
-  @IsString({ each: true })
+  @IsNumber({}, { each: true })
   @IsOptional()
-  imageExamples?: string[];
-
-  @IsArray()
-  @IsMongoId({ each: true })
-  @IsOptional()
-  relatedProducts?: Types.ObjectId[];
+  relatedProducts?: number[];
 }

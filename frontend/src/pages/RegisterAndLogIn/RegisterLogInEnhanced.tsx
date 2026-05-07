@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import authService, { LoginRequest, RegisterDoctorRequest, RegisterPatientRequest } from '../../services/authService';
+import authService, { LoginRequest, RegisterRequest } from '../../services/authService';
 import './RegisterLogIn.css';
 
 const RegisterLogIn: React.FC = () => {
@@ -17,19 +17,12 @@ const RegisterLogIn: React.FC = () => {
     password: ''
   });
   
-  const [registerForm, setRegisterForm] = useState({
-    userType: 'patient' as 'doctor' | 'patient',
+  const [registerForm, setRegisterForm] = useState<RegisterRequest>({
     email: '',
     password: '',
     fullName: '',
-    // Doctor specific fields
-    doctor_id: '',
-    discipline: '',
-    permission: 'user',
-    phoneNumber: '',
-    // Patient specific fields
-    patient_id: '',
-    birthDay: '',
+    phone: '',
+    address: '',
   });
 
   // Loading and error states
@@ -74,9 +67,9 @@ const RegisterLogIn: React.FC = () => {
       setSuccess(`Welcome back, ${response.user.fullName}!`);
       console.log('✅ Login successful:', response.user);
 
-      // Redirect based on user type
+      // Redirect based on user role
       setTimeout(() => {
-        if (response.user.userType === 'doctor') {
+        if (response.user.role === 'DOCTOR' || response.user.role === 'ADMIN') {
           navigate('/admin/dashboard');
         } else {
           navigate('/');
@@ -99,51 +92,21 @@ const RegisterLogIn: React.FC = () => {
     setSuccess('');
 
     try {
-      console.log('📝 Attempting registration as:', registerForm.userType);
+      console.log('📝 Attempting registration for patient');
 
-      if (registerForm.userType === 'doctor') {
-        const doctorData: RegisterDoctorRequest = {
-          doctor_id: registerForm.doctor_id || `DOC${Date.now()}`,
-          email: registerForm.email,
-          password: registerForm.password,
-          fullName: registerForm.fullName,
-          discipline: registerForm.discipline,
-          permission: registerForm.permission,
-          phoneNumber: registerForm.phoneNumber,
-        };
-
-        const response = await authService.registerDoctor(doctorData);
-        setSuccess('Doctor registration successful! You can now login.');
-        console.log('✅ Doctor registered:', response);
-
-      } else {
-        const patientData: RegisterPatientRequest = {
-          patient_id: registerForm.patient_id || `PAT${Date.now()}`,
-          email: registerForm.email,
-          password: registerForm.password,
-          fullName: registerForm.fullName,
-          birthDay: registerForm.birthDay,
-        };
-
-        const response = await authService.registerPatient(patientData);
-        setSuccess('Patient registration successful! You can now login.');
-        console.log('✅ Patient registered:', response);
-      }
+      const response = await authService.register(registerForm);
+      setSuccess('Registration successful! You can now login.');
+      console.log('✅ Patient registered:', response);
 
       // Auto-switch to login view after successful registration
       setTimeout(() => {
         setIsLoginView(true);
         setRegisterForm({
-          userType: 'patient',
           email: '',
           password: '',
           fullName: '',
-          doctor_id: '',
-          discipline: '',
-          permission: 'user',
-          phoneNumber: '',
-          patient_id: '',
-          birthDay: '',
+          phone: '',
+          address: '',
         });
       }, 2000);
 
@@ -205,29 +168,6 @@ const RegisterLogIn: React.FC = () => {
             <h2 className="form_title">Register</h2>
             <form onSubmit={handleRegister} className="form_inputs">
               
-              {/* User Type Selection */}
-              <div className="user_type_selection">
-                <label>
-                  <input
-                    type="radio"
-                    value="patient"
-                    checked={registerForm.userType === 'patient'}
-                    onChange={(e) => setRegisterForm(prev => ({ ...prev, userType: e.target.value as 'patient' }))}
-                  />
-                  Patient
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    value="doctor"
-                    checked={registerForm.userType === 'doctor'}
-                    onChange={(e) => setRegisterForm(prev => ({ ...prev, userType: e.target.value as 'doctor' }))}
-                  />
-                  Doctor
-                </label>
-              </div>
-
-              {/* Common Fields */}
               <input 
                 type="text" 
                 placeholder="Full Name"
@@ -252,40 +192,20 @@ const RegisterLogIn: React.FC = () => {
                 onChange={(e) => setRegisterForm(prev => ({ ...prev, password: e.target.value }))}
                 required
               />
-
-              {/* Doctor Specific Fields */}
-              {registerForm.userType === 'doctor' && (
-                <>
-                  <input 
-                    type="text" 
-                    placeholder="Discipline (e.g., Dermatology)"
-                    className="form_input"
-                    value={registerForm.discipline}
-                    onChange={(e) => setRegisterForm(prev => ({ ...prev, discipline: e.target.value }))}
-                    required
-                  />
-                  <input 
-                    type="tel" 
-                    placeholder="Phone Number"
-                    className="form_input"
-                    value={registerForm.phoneNumber}
-                    onChange={(e) => setRegisterForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                    required
-                  />
-                </>
-              )}
-
-              {/* Patient Specific Fields */}
-              {registerForm.userType === 'patient' && (
-                <input 
-                  type="date" 
-                  placeholder="Birth Date"
-                  className="form_input"
-                  value={registerForm.birthDay}
-                  onChange={(e) => setRegisterForm(prev => ({ ...prev, birthDay: e.target.value }))}
-                  required
-                />
-              )}
+              <input 
+                type="tel" 
+                placeholder="Phone Number (Optional)"
+                className="form_input"
+                value={registerForm.phone}
+                onChange={(e) => setRegisterForm(prev => ({ ...prev, phone: e.target.value }))}
+              />
+              <input 
+                type="text" 
+                placeholder="Address (Optional)"
+                className="form_input"
+                value={registerForm.address}
+                onChange={(e) => setRegisterForm(prev => ({ ...prev, address: e.target.value }))}
+              />
 
               <button 
                 type="submit" 

@@ -24,11 +24,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ id, image, title, price, desc
     const handleAddToCart = (e: React.MouseEvent) => {
         e.stopPropagation();
         const productInfo = { id, image, title, price, description };
-        if(cart.some(itemCart => itemCart.id === id)) {
-            // console.log("update");
-            dispatch(updateQuantity(id));
-        }
-        else{
+        const existingItem = cart.find(itemCart => itemCart.id === id);
+        if (existingItem) {
+            dispatch(updateQuantity(id, existingItem.quantity + 1));
+        } else {
             dispatch(addToCart(id, productInfo));
         }
     }

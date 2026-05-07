@@ -1,4 +1,5 @@
 import '../css/content_2.css'
+import doctorImage from '../../../assets/pictures/doctor_content_2.png'
 
 const Content_2 = () => {
     const features = [
@@ -71,7 +72,7 @@ const Content_2 = () => {
                 </div>
             </div>
             <div className="Content_2_right">
-                <img src="/src/assets/pictures/doctor_content_2.png" alt="Doctor" className="Content_2_right_img" />
+                <img src={doctorImage} alt="Doctor" className="Content_2_right_img" />
             </div>
         </div>
     );

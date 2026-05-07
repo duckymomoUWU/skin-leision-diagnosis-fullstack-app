@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpModule } from '@nestjs/axios';
 import { DiagnoseService } from './diagnose.service';
 import { DiagnoseController } from './diagnose.controller';
-import { Diagnose, DiagnoseSchema } from './entities/diagnose.entity';
+import { Diagnose } from './entities/diagnose.entity';
+import { UploadModule } from '../cloudinary/upload.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Diagnose.name, schema: DiagnoseSchema },
-    ]),
+    TypeOrmModule.forFeature([Diagnose]),
+    HttpModule,
+    UploadModule
   ],
   controllers: [DiagnoseController],
   providers: [DiagnoseService],

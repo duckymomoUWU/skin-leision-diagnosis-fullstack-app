@@ -1,39 +1,46 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Product, ProductDocument } from './entities/product.entity';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Product } from './entities/product.entity';
 
 @Injectable()
 export class ProductService {
   constructor(
-    @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
   ) {}
 
-  async create(createProductDto: CreateProductDto): Promise<Product> {
-    const createdProduct = new this.productModel(createProductDto);
-    return createdProduct.save();
+  async create(createProductDto: Partial<Product>): Promise<Product> {
+    const product = this.productRepository.create(createProductDto);
+    return this.productRepository.save(product);
   }
 
   async findAll(): Promise<Product[]> {
-    return this.productModel.find().exec();
+    return this.productRepository.find({ where: { is_deleted: 0 } });
   }
 
-  async findOne(id: string): Promise<Product> {
-    return this.productModel.findById(id).exec();
+  async findOne(id: number): Promise<Product> {
+    const product = await this.productRepository.findOne({ where: { id, is_deleted: 0 } });
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+    return product;
   }
 
-  async update(
-    id: string,
-    updateProductDto: UpdateProductDto,
-  ): Promise<Product> {
-    return this.productModel
-      .findByIdAndUpdate(id, updateProductDto, { new: true })
-      .exec();
+  async findBySlug(slug: string): Promise<Product> {
+    const product = await this.productRepository.findOne({ where: { slug, is_deleted: 0 } });
+    if (!product) {
+      throw new NotFoundException(`Product with slug ${slug} not found`);
+    }
+    return product;
   }
 
-  async remove(id: string): Promise<Product> {
-    return this.productModel.findByIdAndDelete(id).exec();
+  async update(id: number, updateProductDto: Partial<Product>): Promise<Product> {
+    await this.productRepository.update(id, updateProductDto);
+    return this.findOne(id);
+  }
+
+  async remove(id: number): Promise<void> {
+    await this.productRepository.update(id, { is_deleted: 1 });
   }
 }

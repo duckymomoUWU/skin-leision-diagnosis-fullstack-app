@@ -1,31 +1,33 @@
-// export const DiagnoseSchema = SchemaFactory.createForClass(Diagnose);
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
-export type DiagnoseDocument = Diagnose & Document;
-
-@Schema({ timestamps: { createdAt: 'createdAt', updatedAt: false } })
+@Entity('diagnoses')
 export class Diagnose {
-  @Prop({ required: true, unique: true })
-  diagnose_id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Prop({ required: true })
+  @Column()
+  patient_id: number;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'patient_id' })
+  patient: User;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
   prediction: string;
 
-  @Prop()
-  image: string;
-
-  @Prop()
-  description: string;
-
-  @Prop()
+  @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
   confidence: number;
 
-  @Prop({ default: false })
-  deleted: boolean;
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  image_url: string;
 
-  @Prop({ required: true })
-  createdBy: string; // patient_id
+  @Column({ type: 'varchar', length: 2000, nullable: true })
+  description: string;
+
+  @Column({ type: 'number', default: 0 })
+  is_deleted: number;
+
+  @CreateDateColumn()
+  created_at: Date;
 }
-
-export const DiagnoseSchema = SchemaFactory.createForClass(Diagnose);

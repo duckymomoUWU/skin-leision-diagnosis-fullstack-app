@@ -1,30 +1,32 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Order } from '../../order/entities/order.entity';
+import { Product } from '../../product/entities/product.entity';
 
-export type OrderDetailDocument = OrderDetail & Document;
-
-@Schema({ timestamps: true })
+@Entity('order_details')
 export class OrderDetail {
-  @Prop({ required: true, unique: true })
-  order_detail_id: string; // PK
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'Order', required: true })
-  orderID: Types.ObjectId; // FK to Order
+  @Column()
+  order_id: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'Product', required: true })
-  productID: Types.ObjectId; // FK to Product
+  @ManyToOne(() => Order, (order) => order.order_details)
+  @JoinColumn({ name: 'order_id' })
+  order: Order;
 
-  @Prop({ required: true, min: 1 })
-  quantity: number; // Số lượng
+  @Column()
+  product_id: number;
 
-  @Prop({ required: true, min: 0 })
-  price: number; // Giá tại thời điểm mua
+  @ManyToOne(() => Product)
+  @JoinColumn({ name: 'product_id' })
+  product: Product;
 
-  @Prop({ required: true, min: 0 })
-  subtotal: number; // quantity * price
+  @Column({ type: 'numeric', precision: 4 })
+  quantity: number;
 
-  @Prop({ default: false })
-  deleted: boolean; // Soft delete flag
+  @Column({ type: 'numeric', precision: 12, scale: 2 })
+  unit_price: number;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2 })
+  subtotal: number;
 }
-
-export const OrderDetailSchema = SchemaFactory.createForClass(OrderDetail);

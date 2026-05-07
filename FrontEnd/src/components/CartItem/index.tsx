@@ -12,7 +12,7 @@ const CartItem = () => {
     },0);
     return (
         <>
-            <Link to="cart">
+            <Link to="/cart">
                 <i className="fa-solid fa-cart-shopping cart-icon">
                 <span>{total}</span>
             </i></Link>

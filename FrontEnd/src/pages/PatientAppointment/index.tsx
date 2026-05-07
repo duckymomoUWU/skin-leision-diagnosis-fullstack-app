@@ -2,29 +2,28 @@ import { useEffect, useState } from "react";
 import axiosInstance from "../../api/Axios";
 import { SearchIcon } from "../../assets/SVG/Svg";
 import './style.css';
+import LoadingSkeleton from "../../components/LoadingSkeleton/LoadingSkeleton";
 
-type DoctorType = { _id: string, fullName: string };
-type PatientType = { _id: string, fullName: string };
+type DoctorType = { id: number, fullName: string };
+type PatientType = { id: number, fullName: string };
 type ConsultType = {
-  _id: string;
-  consult_id: string;
-  date: string;
-  doctor_id: string | DoctorType;
-  patient_id: string | PatientType;
-  patient_description: string;
-  result: string;
+  id: number;
+  scheduled_date: string;
+  doctor: DoctorType;
+  patient: PatientType;
+  patient_notes: string;
+  doctor_result: string;
+  status: string;
 };
 
 type AppointmentType = {
-  consult_id: string;
-  consult_db_id: string;
+  id: number;
   date: string;
-  doctor_id: string;
   doctor_name: string;
-  patient_id: string;
   patient_name: string;
   patient_description: string;
   result: string;
+  status: string;
 };
 
 const sortableFields = [
@@ -61,59 +60,24 @@ export default function PatientAppointment() {
   useEffect(() => {
     // Fetch consults of this patient & resolve doctor/patient name
     async function fetchConsults() {
-      if (userId === "UNKNOWN") return;
       setLoading(true);
       try {
-        const consultsRes = await axiosInstance.get('/consult');
-        const allConsults: ConsultType[] = consultsRes.data.filter((c: any) => {
-          // c.patient_id can be object or string
-          if (typeof c.patient_id === "object" && c.patient_id !== null) {
-            return c.patient_id._id === userId;
-          }
-          return c.patient_id === userId;
-        });
+        const response = await axiosInstance.get('/appointment/my');
+        const allConsults: ConsultType[] = response.data;
 
-        // Collect all doctor ids/patient ids needed
-        const doctorIdSet = new Set<string>();
-        const patientIdSet = new Set<string>();
-        allConsults.forEach(c => {
-          if (typeof c.doctor_id === "string") doctorIdSet.add(c.doctor_id);
-          else if (c.doctor_id && typeof c.doctor_id === "object") doctorIdSet.add(c.doctor_id._id);
-          if (typeof c.patient_id === "string") patientIdSet.add(c.patient_id);
-          else if (c.patient_id && typeof c.patient_id === "object") patientIdSet.add(c.patient_id._id);
-        });
-
-        // Fetch doctor/patient info in batch
-        const [doctorsRes, patientsRes] = await Promise.all([
-          axiosInstance.get('/doctor'),
-          axiosInstance.get('/patient'),
-        ]);
-        const doctorMap = new Map<string, string>();
-        doctorsRes.data.forEach((d: DoctorType) => doctorMap.set(d._id, d.fullName));
-        const patientMap = new Map<string, string>();
-        patientsRes.data.forEach((p: PatientType) => patientMap.set(p._id, p.fullName));
-
-        // Build appointment array for table
-        const appointments: AppointmentType[] = allConsults.map((c) => {
-          let doctorId = typeof c.doctor_id === "string" ? c.doctor_id : c.doctor_id?._id;
-          let doctorName = doctorMap.get(doctorId || '') || '';
-          let patientId = typeof c.patient_id === "string" ? c.patient_id : c.patient_id?._id;
-          let patientName = patientMap.get(patientId || '') || '';
-          return {
-            consult_id: c.consult_id || c._id,
-            consult_db_id: c._id,
-            date: c.date ? new Date(c.date).toLocaleDateString('en-CA') : '',
-            doctor_id: doctorId || '',
-            doctor_name: doctorName,
-            patient_id: patientId || '',
-            patient_name: patientName,
-            patient_description: c.patient_description,
-            result: c.result,
-          };
-        });
+        const appointments: AppointmentType[] = allConsults.map((c) => ({
+          id: c.id,
+          date: c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString('en-CA') : '',
+          doctor_name: c.doctor?.fullName || 'N/A',
+          patient_name: c.patient?.fullName || 'N/A',
+          patient_description: c.patient_notes,
+          result: c.doctor_result || 'Pending',
+          status: c.status
+        }));
 
         setAppointments(appointments);
-      } catch {
+      } catch (err) {
+        console.error("Failed to fetch appointments", err);
         setAppointments([]);
       }
       setLoading(false);
@@ -123,7 +87,7 @@ export default function PatientAppointment() {
 
   // Filter, sort, paginate
   const filtered = appointments.filter(item =>
-    (item.consult_id && item.consult_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (item.id.toString().includes(searchTerm.toLowerCase())) ||
     (item.date && item.date.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (item.doctor_name && item.doctor_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (item.patient_name && item.patient_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -186,18 +150,18 @@ export default function PatientAppointment() {
         </div>
         <div>
           {loading ? (
-            <div className="diagnose_loader">Loading...</div>
+            <LoadingSkeleton type="table" rows={5} />
           ) : currentRows.length === 0 ? (
             <div className="empty_diagnose_history">No Appointment found.</div>
           ) : (
             currentRows.map(d => (
-              <div className="row_diagnose_history" key={d.consult_id}>
-                <div title={d.consult_id}>{d.consult_id}</div>
+              <div className="row_diagnose_history" key={d.id}>
+                <div title={d.id.toString()}>{d.id}</div>
                 <div title={d.date}>{d.date}</div>
                 <div title={d.doctor_name}>{d.doctor_name}</div>
                 <div title={d.patient_name}>{d.patient_name}</div>
                 <div title={d.patient_description}>{d.patient_description || '-'}</div>
-                <div>{d.result ?? 'N/A'}</div>
+                <div>{d.status}</div>
               </div>
             ))
           )}

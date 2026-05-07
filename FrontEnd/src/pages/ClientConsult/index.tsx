@@ -4,72 +4,30 @@ import { useState, useEffect } from "react";
 import axiosInstance from "../../api/Axios";
 
 type ConsultType = {
-    consult_id: string;
-    date: string;
-    doctor_id: string;
-    patient_id: string;
-    patient_description: string;
-    result: string;
+    id?: number;
+    scheduled_date: string;
+    doctor_id: string | number;
+    patient_id?: string | number;
+    patient_notes: string;
+    doctor_result?: string;
+    status?: string;
 };
 
-function generateNextConsultID(consults: ConsultType[]): string {
-    const prefix = "CST";
-    const usedNumbers = consults
-        .map(app => app.consult_id)
-        .filter(id => id && id.startsWith(prefix))
-        .map(id => parseInt(id.replace(prefix, ""), 10))
-        .filter(n => !isNaN(n))
-        .sort((a, b) => a - b);
-
-    let nextNum = 1;
-    for (let num of usedNumbers) {
-        if (num === nextNum) nextNum++;
-        else break;
-    }
-    return prefix + nextNum.toString().padStart(3, "0");
-}
-
-const initialFormState = (userId: string): ConsultType => ({
-    consult_id: "",
-    date: "",
+const initialFormState = (): ConsultType => ({
+    scheduled_date: "",
     doctor_id: "",
-    patient_id: userId,
-    patient_description: "",
-    result: "Normal",
+    patient_notes: "",
 });
 
 const ClientConsult = () => {
-    const [userId, setUserId] = useState<string>("UNKNOWN");
-    const [doctors, setDoctors] = useState<DoctorType[]>([]);
-    const [consults, setConsults] = useState<ConsultType[]>([]);
-    const [addForm, setAddForm] = useState<ConsultType>(initialFormState("UNKNOWN"));
-
-    // Fetch patient
-    useEffect(() => {
-        const storeUsers = localStorage.getItem("user");
-        if (storeUsers) {
-            try {
-                const user = JSON.parse(storeUsers);
-                setUserId(user.id);
-            } catch {
-                setUserId("UNKNOWN");
-            }
-        }
-    }, []);
-
-    // Sync patient_id to form when userId changes
-    useEffect(() => {
-        setAddForm((prev) => ({
-            ...prev,
-            patient_id: userId,
-        }));
-    }, [userId]);
+    const [doctors, setDoctors] = useState<any[]>([]);
+    const [addForm, setAddForm] = useState<ConsultType>(initialFormState());
 
     // Fetch doctors
     useEffect(() => {
         const fetchDoctors = async () => {
             try {
-                const response = await axiosInstance.get('/doctor');
+                const response = await axiosInstance.get('/users/doctors');
                 setDoctors(response.data);
             } catch (error) {
                 setDoctors([]);
@@ -78,18 +36,9 @@ const ClientConsult = () => {
         fetchDoctors();
     }, []);
 
-    // Fetch existing consults to generate next consult_id
-    useEffect(() => {
-        const fetchConsults = async () => {
-            try {
-                const response = await axiosInstance.get('/consult');
-                setConsults(response.data);
-            } catch (error) {
-                setConsults([]);
-            }
-        };
-        fetchConsults();
-    }, []);
+
+
+
 
     const handleAddFormChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -101,34 +50,19 @@ const ClientConsult = () => {
     const handleAddFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Sinh consult_id mới
-        const consult_id = generateNextConsultID(consults);
-
-        // Chuyển date thành ISO 8601 string
-        let isoDate = "";
-        if (addForm.date) {
-            isoDate = new Date(addForm.date).toISOString();
-        }
-
-        const finalForm: ConsultType = {
-            ...addForm,
-            consult_id,
-            date: isoDate,
+        const finalForm = {
+            doctor_id: Number(addForm.doctor_id),
+            scheduled_date: new Date(addForm.scheduled_date).toISOString(),
+            patient_notes: addForm.patient_notes
         };
 
-        // Log để debug
-        console.log("finalForm:", finalForm);
-
         try {
-            await axiosInstance.post('/consult', finalForm);
-            setAddForm(initialFormState(userId));
+            await axiosInstance.post('/appointment', finalForm);
+            setAddForm(initialFormState());
             alert('Add appointment success!');
-            // Sau khi thêm thì load lại consults để id tiếp theo không bị trùng
-            const response = await axiosInstance.get('/consult');
-            setConsults(response.data);
         } catch (err: any) {
             alert('Add appointment failed!');
-            console.log(err?.response?.data);
+            console.error(err?.response?.data);
         }
     };
 
@@ -140,8 +74,8 @@ const ClientConsult = () => {
 
                     <input
                         type="date"
-                        name="date"
-                        value={addForm.date}
+                        name="scheduled_date"
+                        value={addForm.scheduled_date}
                         onChange={handleAddFormChange}
                         required
                     />
@@ -154,16 +88,16 @@ const ClientConsult = () => {
                     >
                         <option value="">Chọn bác sĩ</option>
                         {doctors.map((doctor) => (
-                            <option key={doctor._id} value={doctor._id}>
+                            <option key={doctor.id} value={doctor.id}>
                                 {doctor.fullName}
                             </option>
                         ))}
                     </select>
 
                     <textarea
-                        name="patient_description"
-                        placeholder="Note"
-                        value={addForm.patient_description}
+                        name="patient_notes"
+                        placeholder="Ghi chú triệu chứng"
+                        value={addForm.patient_notes}
                         onChange={handleAddFormChange}
                         required
                     />

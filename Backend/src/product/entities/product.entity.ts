@@ -1,36 +1,43 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import { SkinLesion } from '../../skin-leision/entities/skin-leision.entity';
 
-export type ProductDocument = Product & Document;
-
-@Schema({ timestamps: true })
+@Entity('products')
 export class Product {
-  @Prop({ required: true, unique: true })
-  product_id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Prop({ required: true })
+  @Column({ type: 'varchar', length: 200 })
   title: string;
 
-  @Prop({ required: true })
+  @Column({ type: 'varchar', length: 200, unique: true, nullable: true })
+  slug: string;
+
+  @Column({ type: 'clob', nullable: true })
   description: string;
 
-  @Prop({ required: true })
+  @Column({ type: 'numeric', precision: 12, scale: 2 })
   price: number;
 
-  @Prop({ default: 0 })
+  @Column({ type: 'numeric', precision: 6, default: 0 })
+  stock_quantity: number;
+
+  @Column({ type: 'numeric', precision: 8, default: 0 })
   sold_count: number;
 
-  @Prop({ default: true })
-  availability: boolean;
+  @Column({ type: 'number', default: 1 })
+  is_active: number;
 
-  @Prop()
-  image: string;
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  image_url: string;
 
-  @Prop({ default: false })
-  deleted: boolean;
+  @Column({ type: 'number', default: 0 })
+  is_deleted: number;
 
-  @Prop()
-  slug: string;
+  @ManyToMany(() => SkinLesion)
+  @JoinTable({
+    name: 'skin_lesion_products',
+    joinColumn: { name: 'product_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'skin_lesion_id', referencedColumnName: 'id' }
+  })
+  skin_lesions: SkinLesion[];
 }
-
-export const ProductSchema = SchemaFactory.createForClass(Product);

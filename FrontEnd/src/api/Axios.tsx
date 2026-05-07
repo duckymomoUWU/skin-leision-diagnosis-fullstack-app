@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8000', // Đúng với backend port
+  baseURL: 'http://localhost:8000/api/v1', // Đã cập nhật theo Backend mới
   timeout: 10000,
   withCredentials: true, // Để gửi cookies
   headers: {
@@ -35,7 +35,7 @@ axiosInstance.interceptors.response.use(
         // Thử refresh token
         const refreshResponse = await axios.get('/auth/refresh', {
           withCredentials: true,
-          baseURL: 'http://localhost:8000'
+          baseURL: 'http://localhost:8000/api/v1'
         });
 
         if (refreshResponse.data.access_token) {

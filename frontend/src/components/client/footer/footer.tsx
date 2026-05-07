@@ -1,4 +1,6 @@
 import './footer.css'
+import appStoreBadge from '../../../assets/pictures/app_store.png'
+import googlePlayBadge from '../../../assets/pictures/ch_play.png'
 
 const Footer = () => {
     return (
@@ -9,8 +11,8 @@ const Footer = () => {
                     <span className='footer_content_1_sub'>
                         Leading the Way in Medical Excellence, Trusted Care.
                     </span>
-                    <img src="/src/assets/pictures/app_store.png" alt="App Store" />
-                    <img src="/src/assets/pictures/ch_play.png" alt="Google Play" />
+                    <img src={appStoreBadge} alt="App Store" />
+                    <img src={googlePlayBadge} alt="Google Play" />
                 </div>
 
                 <div className='footer_content_sub'>

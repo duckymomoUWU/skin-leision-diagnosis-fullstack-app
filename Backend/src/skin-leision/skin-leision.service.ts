@@ -1,126 +1,53 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { SkinLesion, SkinLesionDocument } from './entities/skin-leision.entity';
-import { CreateSkinLesionDto } from './dto/create-skin-leision.dto';
-import { UpdateSkinLeisionDto } from './dto/update-skin-leision.dto';
-import { Product, ProductDocument } from '../product/entities/product.entity';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SkinLesion } from './entities/skin-leision.entity';
 
 @Injectable()
 export class SkinLesionService {
   constructor(
-    @InjectModel(SkinLesion.name)
-    private skinLesionModel: Model<SkinLesionDocument>,
-    @InjectModel(Product.name)
-    private productModel: Model<ProductDocument>,
+    @InjectRepository(SkinLesion)
+    private readonly skinLesionRepository: Repository<SkinLesion>,
   ) {}
 
-  async create(createSkinLesionDto: CreateSkinLesionDto): Promise<SkinLesion> {
-    const createdSkinLesion = new this.skinLesionModel(createSkinLesionDto);
-    return createdSkinLesion.save();
+  async create(createSkinLesionDto: Partial<SkinLesion>): Promise<SkinLesion> {
+    const skinLesion = this.skinLesionRepository.create(createSkinLesionDto);
+    return this.skinLesionRepository.save(skinLesion);
   }
+
+  async createMany(createSkinLesionDtos: any[]): Promise<SkinLesion[]> {
+    const skinLesions = this.skinLesionRepository.create(createSkinLesionDtos);
+    return this.skinLesionRepository.save(skinLesions);
+  }
+
   async findAll(): Promise<SkinLesion[]> {
-    return this.skinLesionModel.find().populate('relatedProducts').exec();
+    return this.skinLesionRepository.find({ where: { is_deleted: 0 } });
   }
 
-  async findOne(id: string): Promise<SkinLesion> {
-    return this.skinLesionModel.findById(id).populate('relatedProducts').exec();
-  }
-
-  async update(
-    id: string,
-    updateSkinLesionDto: UpdateSkinLeisionDto,
-  ): Promise<SkinLesion> {
-    return this.skinLesionModel
-      .findByIdAndUpdate(id, updateSkinLesionDto, { new: true })
-      .exec();
-  }
-
-  async remove(id: string): Promise<SkinLesion> {
-    return this.skinLesionModel.findByIdAndDelete(id).exec();
-  }
-
-  async addProductToSkinLesion(
-    skinLesionId: string,
-    productId: string,
-  ): Promise<SkinLesion> {
-    // Tìm product bằng product_id field
-    const product = await this.productModel
-      .findOne({ product_id: productId })
-      .exec();
-    if (!product) {
-      throw new Error(`Product with product_id ${productId} not found`);
+  async findOne(id: number): Promise<SkinLesion> {
+    const lesion = await this.skinLesionRepository.findOne({ where: { id, is_deleted: 0 } });
+    if (!lesion) {
+      throw new NotFoundException(`Skin Lesion with ID ${id} not found`);
     }
-    // Thêm ObjectId của product vào skin lesion
-    return this.skinLesionModel
-      .findByIdAndUpdate(
-        skinLesionId,
-        { $addToSet: { relatedProducts: product._id } },
-        { new: true },
-      )
-      .populate('relatedProducts')
-      .exec();
+    return lesion;
   }
 
-  async removeProductFromSkinLesion(
-    skinLesionId: string,
-    productId: string,
-  ): Promise<SkinLesion> {
-    // Tìm product bằng product_id field
-    const product = await this.productModel
-      .findOne({ product_id: productId })
-      .exec();
-    if (!product) {
-      throw new Error(`Product with product_id ${productId} not found`);
-    }
-    // Xóa ObjectId của product khỏi skin lesion
-    return this.skinLesionModel
-      .findByIdAndUpdate(
-        skinLesionId,
-        { $pull: { relatedProducts: product._id } },
-        { new: true },
-      )
-      .populate('relatedProducts')
-      .exec();
-  }
-  // Method để lấy chỉ những field cần thiết cho display
-  async findAllForDisplay(): Promise<SkinLesion[]> {
-    return this.skinLesionModel
-      .find()
-      .populate('relatedProducts', 'title price image availability')
-      .exec();
-  }
-
-  // Method để lấy full data cho admin/doctor
-  async findAllForAdmin(): Promise<SkinLesion[]> {
-    return this.skinLesionModel
-      .find()
-      .populate('relatedProducts') // Full populate
-      .exec();
-  }
-  async createMany(
-    createSkinLesionDtos: CreateSkinLesionDto[],
-  ): Promise<SkinLesion[]> {
-    return this.skinLesionModel.insertMany(createSkinLesionDtos);
-  }
   async findByName(name: string): Promise<SkinLesion> {
-    return this.skinLesionModel
-      .findOne({ name: name.toUpperCase() }) // Convert to uppercase để match với DB
-      .populate('relatedProducts')
-      .exec();
+    const lesion = await this.skinLesionRepository.findOne({ 
+      where: { name: name.toUpperCase(), is_deleted: 0 } 
+    });
+    if (!lesion) {
+      throw new NotFoundException(`Skin Lesion with name ${name} not found`);
+    }
+    return lesion;
   }
 
-  async updateRelatedProductsByName(
-    name: string,
-    relatedProducts: string[],
-  ): Promise<SkinLesion> {
-    return this.skinLesionModel
-      .findOneAndUpdate(
-        { name: name.toUpperCase() },
-        { relatedProducts },
-        { new: true },
-      )
-      .populate('relatedProducts')
-      .exec();
+  async update(id: number, updateSkinLesionDto: any): Promise<SkinLesion> {
+    await this.skinLesionRepository.update(id, updateSkinLesionDto);
+    return this.findOne(id);
+  }
+
+  async remove(id: number): Promise<void> {
+    await this.skinLesionRepository.update(id, { is_deleted: 1 });
   }
 }

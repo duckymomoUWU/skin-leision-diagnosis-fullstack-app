@@ -1,27 +1,19 @@
 import { Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../stores/Store';
 
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem("access_token");
+const PrivateRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
+  const { isLoggedIn, user } = useSelector((state: RootState) => state.auth);
 
-  let type;
-  const storedUser = localStorage.getItem('user');
-  if (storedUser) {
-    const parsedUser = JSON.parse(storedUser);
-    type = parsedUser.userType;
-  }
-
-  let patient ;
-  if(type === "patient"){
-    patient = true;
-  }else{
-    patient = false;
-  }
-
-  if (!token || !patient) {
+  if (!isLoggedIn) {
     return <Navigate to="/register-login" replace />;
   }
 
-  return children;
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user?.role || '')) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 export default PrivateRoute;

@@ -74,15 +74,11 @@ export default function Appointment() {
   useEffect(() => {
     async function fetchDoctorsAndPatients() {
       try {
-        const [docRes, patRes] = await Promise.all([
-          axiosInstance.get('/doctor'),
-          axiosInstance.get('/patient')
-        ]);
+        const docRes = await axiosInstance.get('/users/doctors');
         setDoctors(docRes.data);
-        setPatients(patRes.data);
+        // Assuming there might be a /users/patients endpoint soon, for now list all doctors
       } catch (err) {
         setDoctors([]);
-        setPatients([]);
       }
     }
     fetchDoctorsAndPatients();
@@ -92,45 +88,21 @@ export default function Appointment() {
   const fetchAllAppointments = async () => {
     setLoading(true);
     try {
-      const docRes = await axiosInstance.get('/doctor');
-      const doctors: DoctorType[] = docRes.data;
-      const tempAppointments: AppointmentType[] = [];
-
-      await Promise.all(doctors.map(async (doctor) => {
-        await Promise.all((doctor.consult_list_id || []).map(async (consultId) => {
-          try {
-            const consultRes = await axiosInstance.get(`/consult/${consultId}`);
-            const consult: ConsultType = consultRes.data;
-
-            let doctorId = consult.doctor_id;
-            if (typeof doctorId === 'object' && doctorId !== null && '_id' in doctorId) {
-              doctorId = (doctorId as any)._id;
-            }
-
-            let patientId = consult.patient_id;
-            if (typeof patientId === 'object' && patientId !== null && '_id' in patientId) {
-              patientId = (patientId as any)._id;
-            }
-            const patientRes = await axiosInstance.get(`/patient/${patientId}`);
-            const patient: PatientType = patientRes.data;
-
-            tempAppointments.push({
-              consult_id: consult.consult_id || consult._id,
-              consult_db_id: consult._id,
-              date: consult.date ? new Date(consult.date).toLocaleDateString('en-CA') : '',
-              doctor_id: doctorId as string,
-              doctor_name: doctor.fullName,
-              patient_id: patient._id ?? '',
-              patient_name: patient.fullName,
-              patient_description: consult.patient_description,
-              result: consult.result,
-            });
-          } catch {}
-        }));
+      const response = await axiosInstance.get('/appointment');
+      const allAppointments = response.data.map((app: any) => ({
+        consult_id: app.id,
+        consult_db_id: app.id,
+        date: app.scheduled_date ? new Date(app.scheduled_date).toLocaleDateString('en-CA') : '',
+        doctor_id: app.doctor?.id || '',
+        doctor_name: app.doctor?.fullName || 'N/A',
+        patient_id: app.patient?.id || '',
+        patient_name: app.patient?.fullName || 'N/A',
+        patient_description: app.patient_notes,
+        result: app.doctor_result || 'Pending',
       }));
-
-      setAppointments(tempAppointments);
+      setAppointments(allAppointments);
     } catch (err) {
+      console.error("Failed to fetch all appointments", err);
       setAppointments([]);
     }
     setLoading(false);
@@ -216,23 +188,13 @@ export default function Appointment() {
     e.preventDefault();
     setAddLoading(true);
     try {
-      await axiosInstance.post('/consult', {
-        consult_id: addForm.consult_id,
-        date: addForm.date,
-        doctor_id: addForm.doctor_id,
-        patient_id: addForm.patient_id,
-        patient_description: addForm.patient_description,
-        result: addForm.result,
+      await axiosInstance.post('/appointment', {
+        scheduled_date: new Date(addForm.date).toISOString(),
+        doctor_id: Number(addForm.doctor_id),
+        patient_id: Number(addForm.patient_id),
+        patient_notes: addForm.patient_description,
       });
       setShowAddForm(false);
-      setAddForm({
-        consult_id: '',
-        date: '',
-        doctor_id: '',
-        patient_id: '',
-        patient_description: '',
-        result: '',
-      });
       await fetchAllAppointments();
     } catch {
       alert('Add appointment failure!');
@@ -274,13 +236,8 @@ export default function Appointment() {
     e.preventDefault();
     setEditLoading(true);
     try {
-      await axiosInstance.patch(`/consult/${editForm.consult_db_id}`, {
-        consult_id: editForm.consult_id,
-        date: editForm.date,
-        doctor_id: editForm.doctor_id,
-        patient_id: editForm.patient_id,
-        patient_description: editForm.patient_description,
-        result: editForm.result,
+      await axiosInstance.patch(`/appointment/${editForm.consult_db_id}/result`, {
+        doctor_result: editForm.result,
       });
       setShowEditForm(false);
       await fetchAllAppointments();
@@ -297,7 +254,7 @@ export default function Appointment() {
     if (!window.confirm('Are you sure you want to delete this appointment?')) return;
     setLoading(true);
     try {
-      await axiosInstance.delete(`/consult/${item.consult_db_id}`);
+      await axiosInstance.delete(`/appointment/${item.consult_db_id}`);
       await fetchAllAppointments();
     } catch {
       alert('Delete failure!');
@@ -344,11 +301,11 @@ export default function Appointment() {
             <input name="date" type="date" placeholder="Date" value={addForm.date} onChange={handleAddFormChange} required />
             <select name="doctor_id" value={addForm.doctor_id} onChange={handleAddFormChange} required>
               <option value="">Choose a doctor</option>
-              {doctors.map(d => <option value={d._id} key={d._id}>{d.fullName}</option>)}
+              {doctors.map(d => <option value={d.id} key={d.id}>{d.fullName}</option>)}
             </select>
             <select name="patient_id" value={addForm.patient_id} onChange={handleAddFormChange} required>
               <option value="">Choose a patient</option>
-              {patients.map(p => <option value={p._id} key={p._id}>{p.fullName}</option>)}
+              {patients.map(p => <option value={p.id} key={p.id}>{p.fullName}</option>)}
             </select>
             <input name="patient_description" placeholder="Patient description" value={addForm.patient_description} onChange={handleAddFormChange} required />
             <input name="result" placeholder="Result" value={addForm.result} onChange={handleAddFormChange} required />
@@ -373,11 +330,11 @@ export default function Appointment() {
             <input name="date" type="date" placeholder="Date" value={editForm.date} onChange={handleEditFormChange} required />
             <select name="doctor_id" value={editForm.doctor_id} onChange={handleEditFormChange} required>
               <option value="">Choose a doctor</option>
-              {doctors.map(d => <option value={d._id} key={d._id}>{d.fullName}</option>)}
+              {doctors.map(d => <option value={d.id} key={d.id}>{d.fullName}</option>)}
             </select>
             <select name="patient_id" value={editForm.patient_id} onChange={handleEditFormChange} required>
               <option value="">Choose patient</option>
-              {patients.map(p => <option value={p._id} key={p._id}>{p.fullName}</option>)}
+              {patients.map(p => <option value={p.id} key={p.id}>{p.fullName}</option>)}
             </select>
             <input name="patient_description" placeholder="Patient Description" value={editForm.patient_description} onChange={handleEditFormChange} required />
             <input name="result" placeholder="Result" value={editForm.result} onChange={handleEditFormChange} required />

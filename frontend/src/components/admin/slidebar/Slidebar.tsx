@@ -29,13 +29,13 @@ const Slidebar = () => {
   const handleDashboardItemClick = (item: string) => {
     handleSetActive(item);
     switch(item) {
-      case 'dashboard': navigate('dashboard'); break;
-      case 'diagnosis': navigate('diagnose_manager'); break;
-      case 'appointments': navigate('appointments'); break;
-      case 'doctors': navigate('doctors'); break;
-      case 'patients': navigate('patients'); break;
-      case 'products': navigate('products'); break;
-      case 'orders': navigate('orders'); break;
+      case 'dashboard': navigate('/admin/dashboard'); break;
+      case 'diagnosis': navigate('/admin/diagnose_manager'); break;
+      case 'appointments': navigate('/admin/appointments'); break;
+      case 'doctors': navigate('/admin/doctors'); break;
+      case 'patients': navigate('/admin/patients'); break;
+      case 'products': navigate('/admin/products'); break;
+      case 'orders': navigate('/admin/orders'); break;
       default: break;
     }
   };
@@ -43,8 +43,8 @@ const Slidebar = () => {
   const handleUsersRolesItemClick = (item: string) => {
     handleSetActive(item);
     switch(item) {
-      case 'users': navigate('/users'); break;
-      case 'roles': navigate('/roles-permissions'); break;
+      case 'users': navigate('/admin/users'); break;
+      case 'roles': navigate('/admin/roles-permissions'); break;
       default: break;
     }
   };
@@ -52,9 +52,9 @@ const Slidebar = () => {
   const handleSystemSettingsItemClick = (item: string) => {
     handleSetActive(item);
     switch(item) {
-      case 'general': navigate('/dashboard/general-settings'); break;
-      case 'ai': navigate('/dashboard/ai-configuration'); break;
-      case 'payment': navigate('/dashboard/payment-settings'); break;
+      case 'general': navigate('/admin/general-settings'); break;
+      case 'ai': navigate('/admin/ai-configuration'); break;
+      case 'payment': navigate('/admin/payment-settings'); break;
       default: break;
     }
   };

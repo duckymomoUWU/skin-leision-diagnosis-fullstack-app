@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  oracle-db:
+    image: gvenzl/oracle-free:23-slim
+    container_name: skinguard_oracle
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_SYS_PASSWORD:-StrongPass123!}
+      APP_USER: ${ORACLE_USER:-skinguard_user}
+      APP_USER_PASSWORD: ${ORACLE_PASSWORD:-StrongPass123!}
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+
+  nestjs-backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: skinguard_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./Backend/.env
+    environment:
+      - ORACLE_HOST=oracle-db
+      - ORACLE_PORT=1521
+      - ORACLE_USER=skinguard_user
+      - ORACLE_PASSWORD=StrongPass123!
+      - ORACLE_SERVICE_NAME=FREEPDB1
+      - AI_SERVICE_URL=http://fastapi-ai:8001
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  fastapi-ai:
+    build:
+      context: ./AI
+      dockerfile: Dockerfile
+    container_name: skinguard_ai
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+volumes:
+  oracle_data:

@@ -1,146 +1,72 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-  Headers,
-  Get,
-  Param,
-  Res,
-  Request,
-  Req,
-} from '@nestjs/common';
-import { Response, Request as ExpressRequest } from 'express';
+import { Controller, Post, Body, UseGuards, Get, Req, Res, Request, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { PatientService } from '../patient/patient.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { UsersService } from '../users/users.service';
 import { LocalAuthGuard } from './local-auth.guard';
-import { CreatePatientDto } from '../patient/dto/create-patient.dto'; // <-- Sử dụng DTO chuẩn
-import { IsEmail, IsString ,IsOptional } from 'class-validator';
-
-export class LoginDto {
-  @IsEmail()
-  email: string;
-
-  @IsString()
-  password: string;
-
-  
-  @IsString()
-  @IsOptional()
-  userType: 'patient' | 'doctor'; 
-}
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Response, Request as ExpressRequest } from 'express';
+import { UserRole } from '../users/entities/user.entity';
+import * as bcrypt from 'bcryptjs';
 
 @Controller('auth')
 export class AuthController {
   constructor(
-    private authService: AuthService,
-    private patientService: PatientService,
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
   ) {}
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async handlelogin(
-    @Request() req,
-    @Body() loginDto: LoginDto,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    console.log(
-      'AuthController.login - user validated:',
-      req.user.email,
-      'as',
-      req.user.userType,
-    );
-
-    // Generate JWT token
-    const tokenData = await this.authService.generateJwtToken(
-      req.user,
-      response,
-    );
-
-    return {
-      message: 'Login successful',
-      ...tokenData,
-    };
+  async login(@Request() req, @Res({ passthrough: true }) response: Response) {
+    return this.authService.login(req.user, response);
   }
 
-  @Post('register/patient')
-  async registerPatient(@Body() registerDto: CreatePatientDto, @Req() req) {
-    console.log('==== REGISTER BODY ====');
-    console.log(req.body); // Log raw body nhận được
-    console.log('==== DTO ====');
-    console.log(registerDto); // Log sau khi đã qua ValidationPipe
+  @Post('register')
+  async register(@Body() body: any) {
     try {
-      const patient = await this.patientService.create(registerDto);
-      return {
-        message: 'Patient registered successfully',
-        patient: patient,
-        originalPassword: registerDto.password,
-        hashedPassword: patient.password,
+      const hashedPassword = await bcrypt.hash(body.password, 12);
+      const userParams = {
+        email: body.email,
+        password: hashedPassword,
+        role: body.role || UserRole.PATIENT,
       };
-    } catch (error) {
-      return {
-        message: 'Registration failed',
-        error: error.message,
+      
+      const profileParams = {
+        full_name: body.fullName || body.full_name,
+        phone: body.phone,
+        address: body.address,
       };
+
+      const user = await this.usersService.create(userParams, profileParams);
+      const { password, refresh_token, ...result } = user;
+      return result;
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async handlelogout(
-    @Request() req,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    try {
-      const result = await this.authService.logout(response, req.user);
-
-      return {
-        ...result,
-        success: true,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
-      return {
-        statuscode: 400,
-        message: 'Logout failed',
-        error: error.message,
-        success: false,
-      };
-    }
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('account')
-  async getProfile(@Request() req) {
-    return {
-      message: 'Account accessed successfully',
-      user: req.user,
-      timestamp: new Date().toISOString(),
-    };
+  async logout(@Request() req, @Res({ passthrough: true }) response: Response) {
+    return this.authService.logout(req.user, response);
   }
 
   @Get('refresh')
-  async handleRefreshToken(
-    @Req() request: ExpressRequest,
-    @Res({ passthrough: true }) response: Response,
-  ) {
+  async refresh(@Req() request: ExpressRequest, @Res({ passthrough: true }) response: Response) {
     const token = request.cookies['refresh_token'];
     if (!token) {
-      return {
-        message: 'No refresh token provided',
-        success: false,
-      };
+      throw new UnauthorizedException('No refresh token provided');
     }
+    return this.authService.refreshToken(token, response);
+  }
 
-    try {
-      return await this.authService.processNewToken(token, response);
-    } catch (error) {
-      return {
-        message: 'Invalid refresh token',
-        error: error.message,
-        success: false,
-      };
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getProfile(@Request() req) {
+    const user = await this.usersService.findById(req.user.id);
+    if (user) {
+      delete user.password;
+      delete user.refresh_token;
     }
+    return user;
   }
 }
